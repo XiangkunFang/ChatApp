@@ -11,6 +11,16 @@
 - 🎨 **现代化UI**: 仿ChatGPT的简洁美观界面
 - ⚡ **实时交互**: 流畅的用户体验和实时响应
 
+## 📚 文档
+
+查看完整的文档和指南：
+
+- **[📖 文档中心](docs/)** - 包含所有配置、部署和使用指南
+- **[🚀 快速开始](docs/DOCKER-QUICKSTART.md)** - Docker 快速部署指南  
+- **[🛡️ 安全配置](docs/SECURITY-GUIDE.md)** - 安全保护和认证配置
+- **[👥 多用户系统](docs/MULTI-USER-GUIDE.md)** - 多用户功能使用说明
+- **[🌍 外部访问](docs/EXTERNAL-ACCESS-INFO.md)** - 公网访问配置指南
+
 ## 🛠️ 技术栈
 
 ### 后端
@@ -206,7 +216,7 @@ gunicorn -w 4 -b 0.0.0.0:5000 app:app
 
 如有问题或建议，请通过以下方式联系：
 - 提交 GitHub Issue
-- 发送邮件到 [your-email@example.com]
+- 发送邮件到 [xf687@nyu.edu]
 
 ---
 
