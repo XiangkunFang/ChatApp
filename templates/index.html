@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp - AI助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-comments"></i> ChatApp</h1>
+                <button class="new-chat-btn" onclick="createNewSession()">
+                    <i class="fas fa-plus"></i> 新对话
+                </button>
+            </div>
+            
+            <div class="sessions-list" id="sessionsList">
+                <!-- 会话列表将在这里动态加载 -->
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="api-status" id="apiStatus">
+                    <i class="fas fa-circle text-red"></i>
+                    <span>API未配置</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主聊天区域 -->
+        <div class="main-content">
+            <div class="chat-header">
+                <button class="sidebar-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h2 id="currentSessionTitle">新对话</h2>
+                <div class="header-controls">
+                    <div class="model-selector">
+                        <label for="modelSelect"><i class="fas fa-brain"></i></label>
+                        <select id="modelSelect" title="选择AI模型">
+                            <option value="gpt-4o">GPT-4o</option>
+                        </select>
+                    </div>
+                    <div class="header-actions">
+                        <button class="delete-session-btn" onclick="deleteCurrentSession()" title="删除对话">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-container" id="chatContainer">
+                <div class="welcome-message" id="welcomeMessage">
+                    <div class="welcome-content">
+                        <i class="fas fa-robot"></i>
+                        <h3>欢迎使用ChatApp</h3>
+                        <p>我是您的AI助手，可以帮您回答问题、分析图片等。请开始对话吧！</p>
+                    </div>
+                </div>
+                
+                <div class="messages" id="messages">
+                    <!-- 消息将在这里显示 -->
+                </div>
+            </div>
+            
+            <div class="input-container">
+                <div class="image-preview" id="imagePreview" style="display: none;">
+                    <img id="previewImage" src="" alt="预览图片">
+                    <button class="remove-image" onclick="removeImage()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form class="input-form" id="messageForm" enctype="multipart/form-data">
+                    <div class="input-group">
+                        <button type="button" class="upload-btn" onclick="document.getElementById('imageInput').click()">
+                            <i class="fas fa-image"></i>
+                        </button>
+                        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+                        
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="输入消息..."
+                            rows="1"
+                            onkeydown="handleKeyDown(event)"
+                            oninput="adjustTextareaHeight(this)"
+                        ></textarea>
+                        
+                        <button type="submit" class="send-btn" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 加载动画 -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>AI正在思考中...</p>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

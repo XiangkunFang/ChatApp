@@ -1,0 +1,24 @@
+# ChatApp 环境变量配置示例
+# 使用方法：复制这些内容到 .env 文件中，并替换为实际值
+
+OPENAI_API_KEY=sk-your-openai-api-key-here
+SECRET_KEY=your-random-secret-key-for-flask-sessions
+
+# 安全认证配置
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=your_secure_password_here
+ENABLE_AUTH=true
+
+# 速率限制配置
+RATE_LIMIT_REQUESTS=10
+RATE_LIMIT_WINDOW=60
+ENABLE_RATE_LIMIT=true
+
+# IP白名单配置 (用逗号分隔多个IP，留空则不启用)
+IP_WHITELIST=192.168.1.100,203.0.113.5
+ENABLE_IP_WHITELIST=false
+
+# 多用户配置
+ENABLE_MULTI_USER=true
+# 用户配置格式: username1:password1,username2:password2
+USERS_CONFIG=alice:alice123,bob:bob456,carol:carol789
