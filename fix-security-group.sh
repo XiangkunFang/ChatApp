@@ -65,3 +65,5 @@ fi
 echo ""
 echo "🧪 测试连接性:"
 echo "   curl -I http://$(curl -s ifconfig.me):5000"
+
+

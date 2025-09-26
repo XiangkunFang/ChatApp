@@ -12,3 +12,5 @@ class Config:
 
 # 确保上传目录存在
 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+
+

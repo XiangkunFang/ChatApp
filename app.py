@@ -544,6 +544,11 @@ def get_models():
     ]
     return jsonify({'models': models})
 
+@app.route('/health')
+def health_check():
+    """健康检查端点 - 不需要认证"""
+    return jsonify({'status': 'healthy', 'service': 'ChatApp'}), 200
+
 @app.route('/api/security/status')
 @requires_auth
 def security_status():

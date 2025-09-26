@@ -514,12 +514,25 @@ body {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+    /* 使用更安全的视窗高度 */
+    body {
+        height: 100dvh; /* 使用动态视窗高度 */
+        height: 100vh; /* 回退方案 */
+    }
+    
+    .app-container {
+        height: 100dvh; /* 使用动态视窗高度 */
+        height: 100vh; /* 回退方案 */
+        min-height: -webkit-fill-available; /* Safari兼容 */
+    }
+    
     .sidebar {
         position: fixed;
         z-index: 999;
         transform: translateX(-100%);
         width: 280px;
         height: 100vh;
+        height: 100dvh; /* 使用动态视窗高度 */
     }
     
     .sidebar.open {
@@ -532,18 +545,109 @@ body {
     
     .main-content {
         width: 100%;
+        min-height: 0; /* 防止flex子元素溢出 */
+    }
+    
+    .chat-container {
+        padding: 10px;
+        min-height: 0; /* 防止flex溢出 */
+        /* 确保聊天容器不会挤压输入框 */
+        flex: 1 1 auto;
+        max-height: calc(100vh - 140px); /* 为header和input留出空间 */
+        max-height: calc(100dvh - 140px); /* 动态视窗高度版本 */
     }
     
     .message-content {
         max-width: 90%;
     }
     
+    .input-container {
+        padding: 10px 15px;
+        /* 确保输入框始终可见 */
+        flex-shrink: 0; /* 防止被压缩 */
+        position: relative;
+        z-index: 10;
+        /* 为了安全起见，可以固定在底部 */
+        background: #fff;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* 优化输入框在移动端的显示 */
+    .input-group {
+        border-radius: 20px;
+        padding: 3px;
+    }
+    
+    #messageInput {
+        padding: 10px 5px;
+        font-size: 16px; /* 防止iOS缩放 */
+    }
+    
+    .send-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+    
+    .upload-btn {
+        padding: 8px;
+        font-size: 14px;
+    }
+}
+
+/* 移动端额外优化 */
+@supports (-webkit-appearance: none) {
+    @media (max-width: 768px) {
+        /* iOS Safari特殊处理 */
+        .app-container {
+            height: -webkit-fill-available;
+        }
+    }
+}
+
+/* 防止移动端输入框被虚拟键盘遮挡 */
+@media (max-width: 768px) and (orientation: portrait) {
+    .main-content {
+        /* 当键盘弹出时自动调整 */
+        padding-bottom: env(keyboard-inset-height, 0);
+    }
+}
+
+/* 横屏模式下的特殊处理 */
+@media (max-width: 768px) and (orientation: landscape) and (max-height: 500px) {
     .chat-container {
-        padding: 15px;
+        max-height: calc(100vh - 100px);
+        max-height: calc(100dvh - 100px);
     }
     
     .input-container {
-        padding: 15px;
+        padding: 5px 15px;
+    }
+}
+
+/* 小屏设备（如iPhone SE）的特殊处理 */
+@media (max-width: 480px) {
+    .chat-header {
+        padding: 10px 15px;
+    }
+    
+    .chat-container {
+        padding: 5px;
+        max-height: calc(100vh - 120px);
+        max-height: calc(100dvh - 120px);
+    }
+    
+    .input-container {
+        padding: 8px 10px;
+    }
+    
+    .input-group {
+        padding: 2px;
+    }
+    
+    #messageInput {
+        font-size: 16px; /* 防止iOS Safari缩放 */
+        padding: 8px 5px;
     }
 }
 

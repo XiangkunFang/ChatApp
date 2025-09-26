@@ -38,6 +38,28 @@ function setupEventListeners() {
             sidebar.classList.remove('open');
         }
     });
+    
+    // 移动端输入框焦点处理
+    const messageInput = document.getElementById('messageInput');
+    if (messageInput) {
+        messageInput.addEventListener('focus', function() {
+            if (window.innerWidth <= 768) {
+                // 移动端获得焦点时确保输入框可见
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }, 300); // 等待虚拟键盘弹出
+            }
+        });
+        
+        // 处理虚拟键盘隐藏
+        messageInput.addEventListener('blur', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    scrollToBottom();
+                }, 300);
+            }
+        });
+    }
 }
 
 // 加载可用模型列表
