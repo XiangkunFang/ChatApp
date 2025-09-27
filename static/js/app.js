@@ -374,7 +374,7 @@ async function handleMessageSubmit(event) {
     removeImage();
 }
 
-// 发送文本消息
+// 发送文本消息（流式）
 async function sendTextMessage(message) {
     try {
         // 立即显示用户消息
@@ -384,7 +384,11 @@ async function sendTextMessage(message) {
         // 获取选择的模型
         const selectedModel = document.getElementById('modelSelect').value;
         
-        const response = await fetch('/api/chat', {
+        // 创建AI消息容器
+        const aiMessageElement = addStreamingMessageToUI('assistant');
+        
+        // 使用fetch进行流式接收
+        const response = await fetch('/api/chat/stream', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -395,22 +399,71 @@ async function sendTextMessage(message) {
             })
         });
         
-        const data = await response.json();
-        
-        if (response.ok) {
-            // 显示AI回复
-            addMessageToUI('assistant', data.response);
-            
-            // 刷新会话列表（更新标题）
-            await loadSessions();
-        } else {
-            throw new Error(data.error || '发送消息失败');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let aiResponse = '';
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const jsonStr = line.substring(6).trim();
+                        if (jsonStr) {
+                            const data = JSON.parse(jsonStr);
+                            
+                            switch(data.type) {
+                                case 'start':
+                                    // 流式开始
+                                    break;
+                                case 'chunk':
+                                    // 接收到新的文本块
+                                    aiResponse += data.content;
+                                    updateStreamingMessage(aiMessageElement, aiResponse);
+                                    break;
+                                case 'end':
+                                    // 流式结束
+                                    finalizeStreamingMessage(aiMessageElement, aiResponse);
+                                    await loadSessions(); // 刷新会话列表
+                                    showLoading(false);
+                                    return;
+                                case 'error':
+                                    // 出现错误
+                                    throw new Error(data.error || '流式传输错误');
+                            }
+                        }
+                    } catch (parseError) {
+                        console.error('解析流式数据失败:', parseError);
+                        // 继续处理其他行
+                    }
+                }
+            }
+        }
+        
+        // 如果到达这里说明流结束了但没有收到end信号
+        finalizeStreamingMessage(aiMessageElement, aiResponse);
+        showLoading(false);
+        
     } catch (error) {
         console.error('发送消息失败:', error);
         showError('发送消息失败: ' + error.message);
-    } finally {
         showLoading(false);
+        
+        // 如果出错，移除流式消息元素
+        const streamingElement = document.querySelector('.message.streaming');
+        if (streamingElement) {
+            streamingElement.remove();
+        }
     }
 }
 
@@ -486,6 +539,56 @@ function addMessageToUI(role, content, imageSrc = null) {
     `;
     
     messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+    scrollToBottom();
+}
+
+// 添加流式消息到UI（初始创建）
+function addStreamingMessageToUI(role) {
+    const messagesContainer = document.getElementById('messages');
+    const welcomeMessage = document.getElementById('welcomeMessage');
+    
+    welcomeMessage.style.display = 'none';
+    
+    const isUser = role === 'user';
+    const avatar = isUser ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+    
+    const messageHtml = `
+        <div class="message ${role} streaming">
+            <div class="message-avatar">${avatar}</div>
+            <div class="message-content">
+                <div class="message-text streaming-text"></div>
+                <div class="typing-indicator">
+                    <span></span><span></span><span></span>
+                </div>
+                <div class="message-time">${formatTime(new Date().toISOString())}</div>
+            </div>
+        </div>
+    `;
+    
+    messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+    const messageElement = messagesContainer.lastElementChild;
+    scrollToBottom();
+    
+    return messageElement;
+}
+
+// 更新流式消息内容
+function updateStreamingMessage(messageElement, content) {
+    const textElement = messageElement.querySelector('.message-text');
+    textElement.innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
+    scrollToBottom();
+}
+
+// 完成流式消息（移除流式指示器）
+function finalizeStreamingMessage(messageElement, content) {
+    const textElement = messageElement.querySelector('.message-text');
+    const typingIndicator = messageElement.querySelector('.typing-indicator');
+    
+    textElement.innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
+    if (typingIndicator) {
+        typingIndicator.remove();
+    }
+    messageElement.classList.remove('streaming');
     scrollToBottom();
 }
 

@@ -3,7 +3,7 @@ import json
 import uuid
 from datetime import datetime
 from functools import wraps
-from flask import Flask, request, jsonify, render_template, session, make_response
+from flask import Flask, request, jsonify, render_template, session, make_response, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -405,6 +405,118 @@ def chat():
     except Exception as e:
         print(f"Chat error: {e}")
         return jsonify({'error': f'处理消息时出错: {str(e)}'}), 500
+
+@app.route('/api/chat/stream', methods=['POST'])
+@requires_auth
+@rate_limit
+def chat_stream():
+    """处理流式聊天请求"""
+    username = get_current_user()
+    if not username:
+        return jsonify({'error': '用户未认证'}), 401
+    
+    session_id = get_session_id()
+    data = request.get_json()
+    user_message = data.get('message', '')
+    selected_model = data.get('model', 'gpt-4o')
+    
+    def generate_response():
+        try:
+            user_sessions = get_user_sessions(username)
+            
+            # 确保会话存在
+            if session_id not in user_sessions:
+                create_user_session(username, session_id)
+                user_sessions = get_user_sessions(username)
+            
+            if not user_message.strip():
+                yield f"data: {json.dumps({'type': 'error', 'error': '消息不能为空'})}\n\n"
+                return
+            
+            # 初始化聊天模型（启用流式）
+            try:
+                chat_model = ChatOpenAI(
+                    openai_api_key=app.config['OPENAI_API_KEY'],
+                    model_name=selected_model,
+                    temperature=0.7,
+                    streaming=True
+                )
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'error', 'error': f'模型初始化失败: {str(e)}'})}\n\n"
+                return
+            
+            # 构建消息历史
+            current_session = user_sessions[session_id]
+            messages = []
+            
+            # 添加系统消息
+            messages.append(SystemMessage(content="你是一个有帮助的AI助手，可以回答各种问题并分析图片。"))
+            
+            # 添加历史消息
+            for msg in current_session['messages']:
+                if msg['role'] == 'user':
+                    if 'image' in msg:
+                        content = [
+                            {"type": "text", "text": msg['content']},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{msg['image']}"}}
+                        ]
+                        messages.append(HumanMessage(content=content))
+                    else:
+                        messages.append(HumanMessage(content=msg['content']))
+                else:
+                    messages.append(AIMessage(content=msg['content']))
+            
+            # 添加当前用户消息
+            messages.append(HumanMessage(content=user_message))
+            
+            # 发送开始信号
+            yield f"data: {json.dumps({'type': 'start'})}\n\n"
+            
+            # 流式调用模型获取响应
+            ai_response_chunks = []
+            for chunk in chat_model.stream(messages):
+                if hasattr(chunk, 'content') and chunk.content:
+                    ai_response_chunks.append(chunk.content)
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': chunk.content})}\n\n"
+            
+            # 组合完整响应
+            ai_response = ''.join(ai_response_chunks)
+            
+            # 保存消息到会话
+            current_session['messages'].append({
+                'role': 'user',
+                'content': user_message,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+            current_session['messages'].append({
+                'role': 'assistant',
+                'content': ai_response,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+            # 更新会话标题（如果是第一条消息）
+            if len(current_session['messages']) == 2:
+                current_session['title'] = user_message[:20] + ('...' if len(user_message) > 20 else '')
+            
+            # 发送结束信号
+            yield f"data: {json.dumps({'type': 'end', 'session_id': session_id})}\n\n"
+            
+        except Exception as e:
+            print(f"Stream chat error: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'error': f'处理消息时出错: {str(e)}'})}\n\n"
+    
+    return Response(
+        generate_response(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+    )
 
 @app.route('/api/upload', methods=['POST'])
 @requires_auth
